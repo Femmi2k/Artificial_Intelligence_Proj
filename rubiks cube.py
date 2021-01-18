@@ -145,6 +145,81 @@ class Solver:
         else:
             self.move("Ri B B R Bi Bi D Bi Di")
 
+    def second_layer(self):
+        rd_piece = self.cube.find_piece(self.cube.right_color(), self.cube.down_color())
+        ru_piece = self.cube.find_piece(self.cube.right_color(), self.cube.up_color())
+        ld_piece = self.cube.find_piece(self.cube.left_color(), self.cube.down_color())
+        lu_piece = self.cube.find_piece(self.cube.left_color(), self.cube.up_color())
+
+        self.place_middle_layer_ld_edge(ld_piece, self.cube.left_color(), self.cube.down_color())
+        self.move("Z")
+        self.place_middle_layer_ld_edge(rd_piece, self.cube.left_color(), self.cube.down_color())
+        self.move("Z")
+        self.place_middle_layer_ld_edge(ru_piece, self.cube.left_color(), self.cube.down_color())
+        self.move("Z")
+        self.place_middle_layer_ld_edge(lu_piece, self.cube.left_color(), self.cube.down_color())
+        self.move("Z")
+
+    def place_middle_layer_ld_edge(self, ld_piece, left_color, down_color):
+        if ld_piece.pos.z == 0:
+            count = 0
+            while (ld_piece.pos.x, ld_piece.pos.y) != (-1, -1):
+                self.move("Z")
+                count += 1
+
+            self.move("B L Bi Li Bi Di B D")
+            for _ in range(count):
+                self.move("Zi")
+
+        assert ld_piece.pos.z == -1
+
+        if ld_piece.colors[2] == left_color:
+            
+            while ld_piece.pos.y != -1:
+                self.move("B")
+            self.move("B L Bi Li Bi Di B D")
+        elif ld_piece.colors[2] == down_color:
+            while ld_piece.pos.x != -1:
+                self.move("B")
+            self.move("Bi Di B D B L Bi Li")
+        else:
+            print("Error")
+            #Error
+
+    def back_face_edges(self):
+        self.move("X X")
+
+        def state1():
+            return (self.cube[0, 1, 1].colors[2] == self.cube.front_color() and
+                    self.cube[-1, 0, 1].colors[2] == self.cube.front_color() and
+                    self.cube[0, -1, 1].colors[2] == self.cube.front_color() and
+                    self.cube[1, 0, 1].colors[2] == self.cube.front_color())
+
+        def state2():
+            return (self.cube[0, 1, 1].colors[2] == self.cube.front_color() and
+                    self.cube[-1, 0, 1].colors[2] == self.cube.front_color())
+
+        def state3():
+            return (self.cube[-1, 0, 1].colors[2] == self.cube.front_color() and
+                    self.cube[1, 0, 1].colors[2] == self.cube.front_color())
+
+        def state4():
+            return (self.cube[0, 1, 1].colors[2] != self.cube.front_color() and
+                    self.cube[-1, 0, 1].colors[2] != self.cube.front_color() and
+                    self.cube[0, -1, 1].colors[2] != self.cube.front_color() and
+                    self.cube[1, 0, 1].colors[2] != self.cube.front_color())
+
+        count = 0
+        while not state1():
+            if state4() or state2():
+                self.move("D F R Fi Ri Di")
+            elif state3():
+                self.move("D R F Ri Fi Di")
+            else:
+                self.move("F")
+            count += 1
+
+        self.move("Xi Xi")
 
 
 if __name__ == '__main__':
