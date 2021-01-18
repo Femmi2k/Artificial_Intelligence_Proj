@@ -62,7 +62,7 @@ class Solver:
         undo_move = None
         if edge_piece.pos.z == 0:
             pos = Point(edge_piece.pos)
-            pos.x = 0  
+            pos.x = 0 
             cw, cc = cube.get_rot_from_face(pos)
 
             if edge_piece.pos in (cube.LEFT + cube.UP, cube.RIGHT + cube.DOWN):
@@ -76,17 +76,21 @@ class Solver:
             pos.z = 0
             cw, cc = cube.get_rot_from_face(pos)
             self.move("{0} {0}".format(cc))
+            # don't set the undo move if the piece starts out in the right position
             if edge_piece.pos.x != face_piece.pos.x:
                 undo_move = "{0} {0}".format(cw)
 
         assert edge_piece.pos.z == -1
 
+        #rotate to correct face (LEFT or RIGHT)
         count = 0
         while (edge_piece.pos.x, edge_piece.pos.y) != (face_piece.pos.x, face_piece.pos.y):
             self.move("B")
             count += 1
             if count == 10:
                 raise Exception("Stuck in loop - unsolvable cube?\n" + str(self.cube))
+
+        # if we moved a correctly-placed piece, restore it
         if undo_move:
             self.move(undo_move)
         if edge_piece.colors[0] == face_color:
@@ -116,13 +120,14 @@ class Solver:
             pos.x = pos.z = 0
             cw, cc = cube.get_rot_from_face(pos)
 
+            # be careful not to screw up other pieces on the front face
             count = 0
             undo_move = cc
             while corner_piece.pos.z != -1:
                 self.move(cw)
                 count += 1
 
-            if count > 1:
+            if count > 1:.
                 for _ in range(count):
                     self.move(cc)
 
@@ -138,6 +143,7 @@ class Solver:
         while (corner_piece.pos.x, corner_piece.pos.y) != (right_piece.pos.x, down_piece.pos.y):
             self.move("B")
 
+        # there are three possible orientations for a corner
         if corner_piece.colors[0] == front_color:
             self.move("B D Bi Di")
         elif corner_piece.colors[1] == front_color:
@@ -160,7 +166,7 @@ class Solver:
         self.place_middle_layer_ld_edge(lu_piece, self.cube.left_color(), self.cube.down_color())
         self.move("Z")
 
-    def place_middle_layer_ld_edge(self, ld_piece, left_color, down_color):
+    def place_middle_layer_ld_edge(self, ld_piece, left_color, down_color):  
         if ld_piece.pos.z == 0:
             count = 0
             while (ld_piece.pos.x, ld_piece.pos.y) != (-1, -1):
@@ -183,8 +189,7 @@ class Solver:
                 self.move("B")
             self.move("Bi Di B D B L Bi Li")
         else:
-            print("Error")
-            #Error
+            raise Exception("BUG!!")
 
     def back_face_edges(self):
         self.move("X X")
@@ -218,13 +223,15 @@ class Solver:
             else:
                 self.move("F")
             count += 1
+            if count == 10:
+                raise Exception("Stuck in loop - unsolvable cube\n" + str(self.cube))
 
         self.move("Xi Xi")
 
     def last_layer_corners_position(self):
         self.move("X X")
-        move_1 = "Li Fi L D F Di Li F L F F "  
-        move_2 = "F Li Fi L D F Di Li F L F " 
+        move_1 = "Li Fi L D F Di Li F L F F " 
+        move_2 = "F Li Fi L D F Di Li F L F "
 
         c1 = self.cube.find_piece(self.cube.front_color(), self.cube.right_color(), self.cube.down_color())
         c2 = self.cube.find_piece(self.cube.front_color(), self.cube.left_color(), self.cube.down_color())
@@ -312,7 +319,8 @@ class Solver:
             elif state7(): self.move(move_1 + "F F " + move_1)
             else:
                 self.move("F")
-        
+
+        # rotate corners into correct locations
         bru_corner = self.cube.find_piece(self.cube.front_color(), self.cube.right_color(), self.cube.up_color())
         while bru_corner.pos != Point(1, 1, 1):
             self.move("F")
@@ -385,19 +393,88 @@ class Solver:
                 self.move(cycle_move)
             count += 1
             if count == 10:
-                #Add error here
-                print("error")
+                raise Exception("Stuck in loop - unsolvable cube:\n" + str(self.cube))
 
         self.move("Xi Xi")
 
 
+    def _handle_last_layer_state1(self, br_edge, bl_edge, bu_edge, bd_edge, cycle_move, h_move):
+        if DEBUG: print("_handle_last_layer_state1")
+        def check_edge_lr():
+            return self.cube[cube.LEFT + cube.FRONT].colors[2] == self.cube.left_color()
+
+        count = 0
+        while not check_edge_lr():
+            self.move("F")
+            count += 1
+            if count == 4:
+                raise Exception("Bug: Failed to handle last layer state1")
+
+        self.move(h_move)
+
+        for _ in range(count):
+            self.move("Fi")
+
+
+    def _handle_last_layer_state2(self, br_edge, bl_edge, bu_edge, bd_edge, cycle_move):
+        if DEBUG: print("\t---SOLVED---\n",end='')
+        def correct_edge():
+            piece = self.cube[cube.LEFT + cube.FRONT]
+            if piece.colors[2] == self.cube.front_color() and piece.colors[0] == self.cube.left_color():
+                return piece
+            piece = self.cube[cube.RIGHT + cube.FRONT]
+            if piece.colors[2] == self.cube.front_color() and piece.colors[0] == self.cube.right_color():
+                return piece
+            piece = self.cube[cube.UP + cube.FRONT]
+            if piece.colors[2] == self.cube.front_color() and piece.colors[1] == self.cube.up_color():
+                return piece
+            piece = self.cube[cube.DOWN + cube.FRONT]
+            if piece.colors[2] == self.cube.front_color() and piece.colors[1] == self.cube.down_color():
+                return piece
+
+        count = 0
+        while True:
+            edge = correct_edge()
+            if edge == None:
+                self.move(cycle_move)
+            else:
+                break
+
+            count += 1
+
+            if count % 3 == 0:
+                self.move("Z")
+
+            if count == 12:
+                raise Exception("Stuck in loop - unsolvable cube:\n" + str(self.cube))
+
+        while edge.pos != Point(-1, 0, 1):
+            self.move("Z")
+
+        assert self.cube[cube.LEFT + cube.FRONT].colors[2] == self.cube.front_color() and \
+               self.cube[cube.LEFT + cube.FRONT].colors[0] == self.cube.left_color()
+
+
 if __name__ == '__main__':
     DEBUG = True
+    '''
+        Green F
+        Orange L
+        Red R
+        yellow U
+        white D
+        Blue B
+    '''
+    print("\t---Input Cube---")
     c = cube.Cube("FRLLURUBFRFBRRLUDDBUUURDLFFDLLBBFFLRDBLUUFLFRBDBUDBDRD")
+    print(c,"\n")
+    print("\t---Applying Six Steps Technique---\n")
     orig = cube.Cube(c)
     solver = Solver(c)
     solver.solve()
+    print("\t---Output Cube---")
+    print(f"{len(solver.moves)} moves")
 
-    #Non working code below    
     check = cube.Cube(orig)
+    check.sequence(" ".join(solver.moves))
     assert check.is_solved()
