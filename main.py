@@ -465,6 +465,8 @@ if __name__ == '__main__':
         white D
         Blue B
     '''
+    #An Example Code Below
+    #DDFDDFLLFLLUFFRDDDLBBLLUFFURRRDBBLLUFFURRRDBBRRBUUBUUB
     print("\t---Input Cube---")
     c = cube.Cube("FRLLURUBFRFBRRLUDDBUUURDLFFDLLBBFFLRDBLUUFLFRBDBUDBDRD")
     print(c,"\n")
